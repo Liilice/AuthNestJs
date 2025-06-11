@@ -3,7 +3,6 @@ import { UsersService } from 'src/users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 
-
 interface User {
   id: number;
   email: string;
@@ -23,6 +22,25 @@ export class AuthService {
       throw new UnauthorizedException();
     }
     const payload = { sub: user.id, email: user.email };
-    return { acces_token: await this.jwtService.signAsync(payload) };
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_SECRET,
+      expiresIn: '15m',
+    });
+    const refreshToken = {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: '7d',
+    };
+    return { accessToken, refreshToken };
+  }
+
+  async verifyRefreshToken(token: string) {
+    try {
+      const decoded = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+      return decoded;
+    } catch (err) {
+      return null;
+    }
   }
 }
